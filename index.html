@@ -7,14 +7,30 @@
     <script src="/js/weather.js" defer></script>
 </head>
 <body>
+    <div id="search">
+        <form id="search_form">
+            <input type="text" id="city_input" placeholder="Enter city name" spellcheck="false">
+            <button id="search_button" type="submit">Search</button>
+        </form>
+    </div>
     <div id="current">
-        <h2>Current Weather</h2>
+        <h2 id="city">Mexico City</h2>
         <table>
+            <tr>
+                <td><img id="current_icon" src="https://openweathermap.org/img/wn/10d@2x.png" alt="Weather Icon"></td>
+            </tr>
+            <tr>
+                <td>Local time</td><td id="current_time">12:00</td>
+            </tr>
+            <tr>
+                <td>Condition:</td><td id="current_condition">Clear</td><td></td>
+            </tr>
             <tr>
                 <td>Temperature:</td><td id="current_temp">10</td><td id="temp_unit">°C</td>
             </tr>
+            
             <tr>
-                <td>Rainfall:</td><td id="current_rainfall">5</td><td id="rain_unit">mm</td>
+                <td>Humidity:</td><td id="current_humidity">5</td><td id="rain_unit">%</td>
             </tr>
             <tr>
                 <td>Wind Speed:</td><td id="current_wind_speed">7</td><td id="wind_unit">m/s</td>
@@ -25,6 +41,7 @@
     </div>
     <div id="forecast">
         <h2>Forecast</h2>
+        <p>Coming soon...</p>
         
 
     </div>
