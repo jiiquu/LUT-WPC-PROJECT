@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="stylesheet" href="/css/styles.css">
     <script src="/js/weather.js" defer></script>
     <script src="https://unpkg.com/frappe-charts@1.2.4/dist/frappe-charts.min.iife.js" defer></script>
 </head>
@@ -15,33 +16,40 @@
         </form>
     </div>
     <div id="current">
-        <h2 id="city">Mexico City</h2>
+        <div id="current_header">
+            <h2 id="current_city">Mexico City</h2>
+            <img id="current_icon" src="https://openweathermap.org/img/wn/10d@2x.png" alt="Weather Icon">
+        </div>
+        
         <table>
+            
             <tr>
-                <td><img id="current_icon" src="https://openweathermap.org/img/wn/10d@2x.png" alt="Weather Icon"></td>
+                <td class="label">Local time:</td><td class="value" id="current_time">12:00</td>
             </tr>
             <tr>
-                <td>Local time</td><td id="current_time">12:00</td>
+                <td class="label">Condition:</td><td class="value" id="current_condition">Clear</td>
             </tr>
             <tr>
-                <td>Condition:</td><td id="current_condition">Clear</td><td></td>
-            </tr>
-            <tr>
-                <td>Temperature:</td><td id="current_temp">10</td><td id="temp_unit">°C</td>
+                <td class="label">Temperature:</td><td class="value" id="current_temp">10°C</td>
             </tr>
             
             <tr>
-                <td>Humidity:</td><td id="current_humidity">5</td><td id="rain_unit">%</td>
+                <td class="label">Humidity:</td><td class="value" id="current_humidity">5</td>
             </tr>
             <tr>
-                <td>Wind Speed:</td><td id="current_wind_speed">7</td><td id="wind_unit">m/s</td>
+                <td class="label">Wind Speed:</td><td class="value" id="current_wind_speed">7m/s</td>
         </table>
         
         
         
     </div>
+    <div id="buttons">
+        <button id="toggle_view">Toggle view</button>
+        <button id="toggle_forecast">Toggle 24h/7d</button>
+        <button id="toggle_units">°C/°F/°K</button>
+    </div>
     <div id="forecast">
-        <h2>Forecast</h2>
+        <h2 id="forecast_header">Forecast</h2>
         
         <div id="chart"></div>
 
