@@ -66,12 +66,34 @@ function displayCurrentWeather(data) {
     document.querySelector('#current_temp').innerText = `${Math.round(data.main.temp)}°${tempUnit}`;
     document.querySelector('#current_humidity').innerText = `${data.main.humidity}%`;
     document.querySelector('#current_wind_speed').innerText = `${Math.round(data.wind.speed)}m/s`;
-
+    setAppStyleBasedOnWeather(data);
 
 };
 // Generate a unique cache key based on latitude, longitude, and forecast mode
 function getCacheKey(lat, lon, mode) {
     return `${lat}_${lon}_${mode}`;
+}
+const bgColorMap = {
+    "clear_day": "#a0c4ff",
+    "clear_night": "#041c43ff",
+    "clouds_day": "#a3adb8ff",
+    "clouds_night": "#2c2d2eff",
+    "rain_day": "#6887b8ff",
+    "rain_night": "#2c2d2eff",
+    "snow_day": "#878c90ff",
+    "snow_night": "#4b5459ff"
+}
+
+function setAppStyleBasedOnWeather(data) {
+    const currentCondition = data.weather[0].main.toLowerCase();
+    const localDate = new Date((data.dt) * 1000);
+    const hour = localDate.getHours();
+    const isDay = (hour >= 6 && hour < 18) ? "day" : "night";
+    console.log(hour, isDay);
+    console.log("Current condition:", currentCondition);
+    const key = `${currentCondition}_${isDay}`;
+    document.body.style.backgroundColor = bgColorMap[key] || "#aca9a9ff";
+
 }
 
 // Fetch hourly forecast data from Open-Meteo
@@ -181,12 +203,23 @@ function createHourlyTable(data) {
     // Loop through hourly data and create rows
     for (let i = 0; i < data.hourly.time.length; i++) {
         const row = document.createElement('tr');
+        // Use different icon for day/night if available
+        let imgVer = data.hourly.is_day[i] ? "" : "n";
+        const code = data.hourly.weather_code[i];
+        const img = document.createElement('img');
+        img.src = `/PNG/${code}${imgVer}.png`;
+        img.onerror = function() { 
+            this.src = `/PNG/${code}.png`;
+            console.log("Image not found, loading default."); 
+        };
+        
         row.innerHTML = `
             <td>${data.hourly.time[i].slice(11, 16)}</td>
-            <td><img src="/PNG/${data.hourly.weather_code[i]}.png"></td>
+            <td></td>
             <td>${Math.round(data.hourly.temperature_2m[i])}°${tempUnit}</td>
             <td>${data.hourly.precipitation[i]}mm</td>
         `;
+        row.children[1].appendChild(img);
         tbody.appendChild(row);
     }
 
