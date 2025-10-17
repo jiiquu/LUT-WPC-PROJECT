@@ -3,17 +3,13 @@ let myLat = 48.86;
 let myLon = 2.35;
 
 const OWMAPIKey = '58111013c30dffa44e8a1d78e22ce00c';
-//const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${myLat}&lon=${myLon}&appid=${OWMAPIKey}&units=metric`;
-//const hourlyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_hours=24&wind_speed_unit=ms`;
-//const dailyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
-
 const forecastCache = {};
 let forecastMode = "24h";
 let viewToggle = "list";
 let tempUnit = "C";
 
 
-// Fetch and display weather data on page load
+// Fetch and render initial weather data
 function init() {
  
     // Get user location, update coordinates, fallback to default if error
@@ -30,7 +26,7 @@ function init() {
         }
     );
     } else {
-        console.log("Geolocation is not supported by this browser.");
+        console.log("Geolocation not supported by the browser.");
         updateWeatherAndForecast();
 
     }
@@ -41,11 +37,11 @@ function init() {
 async function fetchCurrentWeather(url) {
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.ok) throw new Error('Network response not ok');
         const data = await response.json();
         displayCurrentWeather(data);
-    } catch (error) {
-        console.error("Error fetching current weather:", error);
+    } catch (err) {
+        console.error("Can't get the current weather:", err);
     }
 };
 function convertTemperature(tempC, unit) {
@@ -53,10 +49,10 @@ function convertTemperature(tempC, unit) {
     if (unit === "K") return (tempC + 273.15);
     return (tempC);
 };
-// Display current weather data in the div #current    
+// Show current weather data in the div #current    
 function displayCurrentWeather(data) {
     if (!data || data.length === 0) {
-        console.error('No data found');
+        console.error('No data');
         return;
     }
     const currentTemp = convertTemperature(data.main.temp, tempUnit);
@@ -69,9 +65,8 @@ function displayCurrentWeather(data) {
     document.querySelector('#current_humidity').innerText = `${data.main.humidity}% humidity`;
     document.querySelector('#current_wind_speed').innerText = `${Math.round(data.wind.speed)}m/s wind`;
     setAppStyleBasedOnWeather(data);
-
 };
-// Generate a unique cache key based on latitude, longitude, and forecast mode
+// Generate the cache key based on latitude, longitude, and forecast mode
 function getCacheKey(lat, lon, mode) {
     return `${lat}_${lon}_${mode}`;
 };
@@ -85,10 +80,10 @@ function setAppStyleBasedOnWeather(data) {
     //console.log("Current condition:", currentCondition);
     const key = `${currentCondition}_${isDay}`;
     document.body.style.backgroundColor = bgColorMap[key] || "#aca9a9ff";
-    const personaTemp = data.main.feels_like;
-    let personaKey = "";
     
     // Determine persona icon based on feels-like temperature
+    const personaTemp = data.main.feels_like;
+    let personaKey = "";
     if (personaTemp >= 32) {
         personaKey = "extreme";
     } else if (personaTemp >= 25) {
@@ -103,9 +98,9 @@ function setAppStyleBasedOnWeather(data) {
     document.getElementById('persona_icon').innerHTML = `<p class="persona">${personaIconMap[personaKey]}</p>`;
 };
 
-// Fetch hourly forecast data from Open-Meteo
+// Get hourly forecast data from Open-Meteo
 async function fetchHourlyForecast(url) {
-    // Check if data is cached and less than 1 hour old
+    // Check if data is in cache and less than 1 hour old
     const key = getCacheKey(myLat, myLon, 'hourly');
     const cacheEntry = forecastCache[key];
     if (cacheEntry && (Date.now() - cacheEntry.timestamp < 3600000)) {
@@ -124,12 +119,12 @@ async function fetchHourlyForecast(url) {
         console.log('Data stored in cache with key:', key);    
         displayHourlyForecast(data);
     } catch (error) {
-        console.error("Error fetching hourly forecast:", error);
+        console.error("Can't get the hourly forecast:", error);
     }
 };
 function displayHourlyForecast(data) {
     if (!data || data.length === 0) {
-        console.error('No data found');
+        console.error('No data');
         return;
     } else {
         const chartData = {
@@ -155,12 +150,12 @@ function displayHourlyForecast(data) {
     }
 }
 
-// Fetch daily forecast data from Open-Meteo
+// Get daily forecast data from Open-Meteo
 async function fetchDailyForecast(url) {
     // Check if data is cached and less than 1 hour old
     const key = getCacheKey(myLat, myLon, 'daily')
     const cacheEntry = forecastCache[key];
-    if (cacheEntry && (Date.now() - cacheEntry.timestamp < 3600000)) {
+    if (cacheEntry && ( Date.now() - cacheEntry.timestamp < 3600000 )) {
         console.log('Using cached data');
         displayDailyForecast(cacheEntry.data);
         return;
@@ -168,7 +163,7 @@ async function fetchDailyForecast(url) {
     // Fetch new data and store in cache
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.ok) throw new Error('Network response not ok');
         const data = await response.json();
         forecastCache[key] = {
             data: data,
@@ -177,13 +172,13 @@ async function fetchDailyForecast(url) {
         console.log('Data stored in cache with key:', key);
         displayDailyForecast(data);
     } catch (error) {
-        console.error("Error fetching daily forecast:", error);
+        console.error("Can't get the daily forecast:", error);
     }
 };
-// Display the fetched data
+// Show the fetched data
 function displayDailyForecast(data) {
     if (!data || data.length === 0) {
-        console.error('No data found');
+        console.error('No data');
         return;
     } else {
         // Format time to weekdays for labels
@@ -191,7 +186,7 @@ function displayDailyForecast(data) {
             const weekday = new Date(t.slice(0, 10)).toLocaleDateString('en-US', { weekday: 'short' });
             return weekday;
         });
-        // Prepare chart data
+        // Prep the chart data
         const chartData = {       
             labels: weekdayLabels,
             datasets: [
@@ -200,7 +195,7 @@ function displayDailyForecast(data) {
                 { name: "Precipitation (mm)", values: data.daily.precipitation_sum, chartType: 'bar' }
             ]
         }
-        // Display chart or table based on viewToggle
+        // Serve chart or table based on selected view
         if (viewToggle === "chart") {
         createChart(chartData);
         } else {
@@ -210,7 +205,7 @@ function displayDailyForecast(data) {
     }
 };
 
-// Create chart using Frappe Charts
+// Create a Frappe chart
 function createChart(chartData) {
      window.chart = new frappe.Chart("#chart", {
         title: `${forecastMode} Weather Forecast`,
@@ -231,6 +226,7 @@ function createHourlyTable(data) {
     // Loop through hourly data and create rows
     for (let i = 0; i < data.hourly.time.length; i++) {
         const row = document.createElement('tr');
+        
         // Use different icon for day/night if available
         let imgVer = data.hourly.is_day[i] ? "" : "n";
         const code = data.hourly.weather_code[i];
@@ -281,7 +277,7 @@ function createDailyTable(data) {
 // Helper function to update weather and forecast based on current coordinates and settings
 function updateWeatherAndForecast() {
     const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${myLat}&lon=${myLon}&appid=${OWMAPIKey}&units=metric`;
-    fetchCurrentWeather(OWMCurrentWeatherUrl);
+        fetchCurrentWeather(OWMCurrentWeatherUrl);
     const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_hours=24&wind_speed_unit=ms`;
         const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
         if (forecastMode === "24h") {
@@ -290,17 +286,22 @@ function updateWeatherAndForecast() {
             fetchDailyForecast(dailyUrl);
         }
 }
-// Handle city search form submission
+// Search city
 document.getElementById('search_form').addEventListener('submit', async(event) => {
     event.preventDefault();
     const city = document.getElementById('city_input').value;
     if (city !== '') {
         const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${OWMAPIKey}&units=metric`;
-        const response = await fetch(OWMCurrentWeatherUrl);
-        const data = await response.json();
-        myLat = data.coord.lat;
-        myLon = data.coord.lon;
-        updateWeatherAndForecast();
+        try {
+            const response = await fetch(OWMCurrentWeatherUrl);
+            if (!response.ok) throw new Error('City not found');
+            const data = await response.json();
+            myLat = data.coord.lat;
+            myLon = data.coord.lon;
+            updateWeatherAndForecast();
+        } catch (error) {
+            console.error("Can't get city data:", error);
+        }
     }
     else {
         return;
@@ -321,22 +322,7 @@ document.getElementById('toggle_units').addEventListener('click', () => {
     tempUnit = (tempUnit === "C") ? "F" : (tempUnit === "F") ? "K" : "C";
     updateWeatherAndForecast();
 });
-// Save current location to favourites in localStorage
-function saveCurrentToLocalStorage() {
-    const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
-    const lat = Number(myLat).toFixed(4);
-    const lon = Number(myLon).toFixed(4);
-    const current = {
-        city: document.getElementById('current_city').innerText,
-        lat: lat,
-        lon: lon
-    }
-    if (!favourites.some(fav => fav.lat === current.lat && fav.lon === current.lon)) {
-        favourites.push(current);
-        localStorage.setItem('favourites', JSON.stringify(favourites));
-        updateFavouritesDropdown();
-    }
-}
+
 // Update favourites dropdown menu
 function updateFavouritesDropdown() {
     const dropdown = document.getElementById('favourites_dropdown');
@@ -349,7 +335,7 @@ function updateFavouritesDropdown() {
         dropdown.appendChild(option);
     });
 }
-// Handle favourite selection
+// User selects a favourite -> update weather
 document.getElementById('favourites_dropdown').addEventListener('change', function() {
     const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
     const selected = this.value;
@@ -362,12 +348,33 @@ document.getElementById('favourites_dropdown').addEventListener('change', functi
     }
 });
 // Save current location to favourites
-document.getElementById('save_favourite').addEventListener('click', saveCurrentToLocalStorage);
+document.getElementById('save_favourite').addEventListener('click', function() {
+    const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
+    const lat = Number(myLat).toFixed(4);
+    const lon = Number(myLon).toFixed(4);
+    const current = {
+        city: document.getElementById('current_city').innerText,
+        lat: lat,
+        lon: lon
+    }
+    if (!favourites.some(fav => fav.lat === current.lat && fav.lon === current.lon)) {
+        favourites.push(current);
+        localStorage.setItem('favourites', JSON.stringify(favourites));
+        console.log('Saved to favourites');
+        updateFavouritesDropdown();
+    }
+});
 
-// Clear all favourites
+// Remove current city from favourites
 document.getElementById('clear_favourites').addEventListener('click', function() {
-    localStorage.removeItem('favourites');
+    let favourites = JSON.parse(localStorage.getItem('favourites')) || [];
+    const lat = Number(myLat).toFixed(4);
+    const lon = Number(myLon).toFixed(4);
+    favourites = favourites.filter(fav => !(fav.lat === lat && fav.lon === lon));
+    localStorage.setItem('favourites', JSON.stringify(favourites));
     updateFavouritesDropdown();
+    console.log('Removed from favourites');
+    
 });
 // Initialize like a true Englishman
 init();
