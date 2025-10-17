@@ -1,15 +1,17 @@
 
-var myLat = 48.86;
-var myLon = 2.35;
+let myLat = 48.86;
+let myLon = 2.35;
+
 const OWMAPIKey = '58111013c30dffa44e8a1d78e22ce00c';
-const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${myLat}&lon=${myLon}&appid=${OWMAPIKey}&units=metric`;
-const hourlyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_days=1&wind_speed_unit=ms`;
-var dailyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
-var forecastMode = "24h";
+//const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${myLat}&lon=${myLon}&appid=${OWMAPIKey}&units=metric`;
+//const hourlyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_hours=24&wind_speed_unit=ms`;
+//const dailyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
+
 const forecastCache = {};
-var viewToggle = "chart";
-var tempUnit = "C";
-    
+let forecastMode = "24h";
+let viewToggle = "list";
+let tempUnit = "C";
+
 
 // Fetch and display weather data on page load
 function init() {
@@ -18,172 +20,197 @@ function init() {
     if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(
         (position) => {
-
             myLat = position.coords.latitude;
-
             myLon = position.coords.longitude;
-            fetchInitialWeather(myLat, myLon);
+            updateWeatherAndForecast();
         },
         (error) => {
             console.error("Error getting location:", error);
-            fetchInitialWeather(myLat, myLon);
+            updateWeatherAndForecast();
         }
     );
     } else {
         console.log("Geolocation is not supported by this browser.");
-        fetchInitialWeather(myLat, myLon);
+        updateWeatherAndForecast();
 
     }
-    function fetchInitialWeather(lat, lon) {
-        const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OWMAPIKey}&units=metric`;
-        fetchCurrentWeather(OWMCurrentWeatherUrl);
-        const hourlyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_days=1&wind_speed_unit=ms`;
-        fetchHourlyForecast(hourlyForecastOMUrl);
-        dailyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
-    //    const MIUrl = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${myLat}&lon=${myLon}`;
-    //    fetchIMForecast(MIUrl);
-    }
+    updateFavouritesDropdown();
 
-}
+};
 // Fetch current weather data from OpenWeatherMap
 async function fetchCurrentWeather(url) {
-
-    const response = await fetch(url);
-    const data = await response.json();
-    console.log(data);
-    displayCurrentWeather(data);
-}
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        displayCurrentWeather(data);
+    } catch (error) {
+        console.error("Error fetching current weather:", error);
+    }
+};
+function convertTemperature(tempC, unit) {
+    if (unit === "F") return (tempC * 9/5 + 32);
+    if (unit === "K") return (tempC + 273.15);
+    return (tempC);
+};
 // Display current weather data in the div #current    
 function displayCurrentWeather(data) {
     if (!data || data.length === 0) {
         console.error('No data found');
         return;
     }
+    const currentTemp = convertTemperature(data.main.temp, tempUnit);
+    const feelsLikeTemp = convertTemperature(data.main.feels_like, tempUnit);
     document.querySelector('#current_city').innerText = data.name + ', ' + data.sys.country;
     document.querySelector('#current_time').innerText = new Date((data.dt + data.timezone) * 1000).toUTCString().replace('GMT', '');
     document.querySelector('#current_icon').src=`https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
     document.querySelector('#current_condition').innerText = data.weather[0].description;
-    document.querySelector('#current_temp').innerText = `${Math.round(data.main.temp)}°${tempUnit}`;
-    document.querySelector('#current_humidity').innerText = `${data.main.humidity}%`;
-    document.querySelector('#current_wind_speed').innerText = `${Math.round(data.wind.speed)}m/s`;
+    document.querySelector('#current_temp').innerText = `${Math.round(currentTemp)}°${tempUnit}, feels like ${Math.round(feelsLikeTemp)}°${tempUnit}`;
+    document.querySelector('#current_humidity').innerText = `${data.main.humidity}% humidity`;
+    document.querySelector('#current_wind_speed').innerText = `${Math.round(data.wind.speed)}m/s wind`;
     setAppStyleBasedOnWeather(data);
 
 };
 // Generate a unique cache key based on latitude, longitude, and forecast mode
 function getCacheKey(lat, lon, mode) {
     return `${lat}_${lon}_${mode}`;
-}
-const bgColorMap = {
-    "clear_day": "#a0c4ff",
-    "clear_night": "#041c43ff",
-    "clouds_day": "#a3adb8ff",
-    "clouds_night": "#2c2d2eff",
-    "rain_day": "#6887b8ff",
-    "rain_night": "#2c2d2eff",
-    "snow_day": "#878c90ff",
-    "snow_night": "#4b5459ff"
-}
-
+};
+// Set app background and persona icon based on weather and time of day
 function setAppStyleBasedOnWeather(data) {
     const currentCondition = data.weather[0].main.toLowerCase();
     const localDate = new Date((data.dt) * 1000);
     const hour = localDate.getHours();
     const isDay = (hour >= 6 && hour < 18) ? "day" : "night";
-    console.log(hour, isDay);
-    console.log("Current condition:", currentCondition);
+    //console.log(hour, isDay);
+    //console.log("Current condition:", currentCondition);
     const key = `${currentCondition}_${isDay}`;
     document.body.style.backgroundColor = bgColorMap[key] || "#aca9a9ff";
-
-}
+    const personaTemp = data.main.feels_like;
+    let personaKey = "";
+    
+    // Determine persona icon based on feels-like temperature
+    if (personaTemp >= 32) {
+        personaKey = "extreme";
+    } else if (personaTemp >= 25) {
+        personaKey = "hot";
+    } else if (personaTemp >= 15) {
+        personaKey = "temperate";
+    } else if (personaTemp >= 0) {
+        personaKey = "cold";
+    } else {
+        personaKey = "freezing";
+    }
+    document.getElementById('persona_icon').innerHTML = `<p class="persona">${personaIconMap[personaKey]}</p>`;
+};
 
 // Fetch hourly forecast data from Open-Meteo
 async function fetchHourlyForecast(url) {
+    // Check if data is cached and less than 1 hour old
     const key = getCacheKey(myLat, myLon, 'hourly');
-    if (forecastCache[key]) {
+    const cacheEntry = forecastCache[key];
+    if (cacheEntry && (Date.now() - cacheEntry.timestamp < 3600000)) {
         console.log('Using cached data');
-        displayHourlyForecast(forecastCache[key]);
+        displayHourlyForecast(cacheEntry.data);
         return;
     }
-    const response = await fetch(url);
-    const data = await response.json();
-    forecastCache[key] = data;
-    console.log(data);
-    console.log('Data stored in cache with key:', key);
-    
-    displayHourlyForecast(data);
-    function displayHourlyForecast(data) {
-        if (!data || data.length === 0) {
-            console.error('No data found');
-            return;
-        } else {
-            const chartData = {
-                labels: data.hourly.time.map(t => t.slice(11, 13)),
-                datasets: [
-                    {
-                        name: "Temperature (°C)",
-                        values: data.hourly.temperature_2m,
-                        chartType: 'line'
-                    },
-                    {
-                        name: "Precipitation (mm)",
-                        values: data.hourly.precipitation,
-                        chartType: 'bar'
-                    }
-                ]
-            }
-                if (viewToggle === "chart") {
-                createChart(chartData);
-            } else {
-                createHourlyTable(data);
-            }
-
-       }
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        forecastCache[key] = {
+            data: data,
+            timestamp: Date.now()
+        };
+        console.log('Data stored in cache with key:', key);    
+        displayHourlyForecast(data);
+    } catch (error) {
+        console.error("Error fetching hourly forecast:", error);
     }
-}
-// Fetch daily forecast data from Open-Meteo
-async function fetchDailyForecast(url) {
-    const key = getCacheKey(myLat, myLon, 'daily')
-
-    if (forecastCache[key]) {
-        console.log('Using cached data');
-        displayDailyForecast(forecastCache[key]);
+};
+function displayHourlyForecast(data) {
+    if (!data || data.length === 0) {
+        console.error('No data found');
         return;
-    }
-    const response = await fetch(url);
-    const data = await response.json();
-    forecastCache[key] = data;
-    console.log(data);
-    console.log('Data stored in cache with key:', key);
-    displayDailyForecast(data);
-    function displayDailyForecast(data) {
-        if (!data || data.length === 0) {
-            console.error('No data found');
-            return;
-        } else {
-            const weekdayLabels = data.daily.time.map(t => {
-                const weekday = new Date(t.slice(0, 10)).toLocaleDateString('en-US', { weekday: 'short' });
-                return weekday;
-            });
-
-            const chartData = {
-                
-                labels: weekdayLabels,
-                datasets: [
-                    { name: "Max", values: data.daily.temperature_2m_max, chartType: 'line' },
-                    { name: "Min", values: data.daily.temperature_2m_min, chartType: 'line' },
-                    { name: "Precipitation (mm)", values: data.daily.precipitation_sum, chartType: 'bar' }
-                ]
-
-            }
+    } else {
+        const chartData = {
+            labels: data.hourly.time.map(t => t.slice(11, 13)),
+            datasets: [
+                {
+                    name: `Temperature (°${tempUnit})`,
+                    values: data.hourly.temperature_2m.map(t => convertTemperature(t, tempUnit)),
+                    chartType: 'line'
+                },
+                {
+                    name: "Precipitation (mm)",
+                    values: data.hourly.precipitation,
+                    chartType: 'bar'
+                }
+            ]
+        }
             if (viewToggle === "chart") {
             createChart(chartData);
-            } else {
-            createDailyTable(data);
-        }
-
+        } else {
+            createHourlyTable(data);
         }
     }
 }
+
+// Fetch daily forecast data from Open-Meteo
+async function fetchDailyForecast(url) {
+    // Check if data is cached and less than 1 hour old
+    const key = getCacheKey(myLat, myLon, 'daily')
+    const cacheEntry = forecastCache[key];
+    if (cacheEntry && (Date.now() - cacheEntry.timestamp < 3600000)) {
+        console.log('Using cached data');
+        displayDailyForecast(cacheEntry.data);
+        return;
+    }
+    // Fetch new data and store in cache
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        forecastCache[key] = {
+            data: data,
+            timestamp: Date.now()
+        };
+        console.log('Data stored in cache with key:', key);
+        displayDailyForecast(data);
+    } catch (error) {
+        console.error("Error fetching daily forecast:", error);
+    }
+};
+// Display the fetched data
+function displayDailyForecast(data) {
+    if (!data || data.length === 0) {
+        console.error('No data found');
+        return;
+    } else {
+        // Format time to weekdays for labels
+        const weekdayLabels = data.daily.time.map(t => {
+            const weekday = new Date(t.slice(0, 10)).toLocaleDateString('en-US', { weekday: 'short' });
+            return weekday;
+        });
+        // Prepare chart data
+        const chartData = {       
+            labels: weekdayLabels,
+            datasets: [
+                { name: `Max (°${tempUnit})`, values: data.daily.temperature_2m_max.map(t => convertTemperature(t, tempUnit)), chartType: 'line' },
+                { name: `Min (°${tempUnit})`, values: data.daily.temperature_2m_min.map(t => convertTemperature(t, tempUnit)), chartType: 'line' },
+                { name: "Precipitation (mm)", values: data.daily.precipitation_sum, chartType: 'bar' }
+            ]
+        }
+        // Display chart or table based on viewToggle
+        if (viewToggle === "chart") {
+        createChart(chartData);
+        } else {
+        createDailyTable(data);
+    }
+
+    }
+};
+
+// Create chart using Frappe Charts
 function createChart(chartData) {
      window.chart = new frappe.Chart("#chart", {
         title: `${forecastMode} Weather Forecast`,
@@ -194,6 +221,7 @@ function createChart(chartData) {
         colors: ['#eb5146'],
     })
 }
+// Create hourly forecast table (list view)
 function createHourlyTable(data) {
     const tableContainer = document.getElementById('chart');
     tableContainer.innerHTML = '';
@@ -207,26 +235,25 @@ function createHourlyTable(data) {
         let imgVer = data.hourly.is_day[i] ? "" : "n";
         const code = data.hourly.weather_code[i];
         const img = document.createElement('img');
-        img.src = `/PNG/${code}${imgVer}.png`;
+        img.src = `/IMG/${code}${imgVer}.png`;
         img.onerror = function() { 
-            this.src = `/PNG/${code}.png`;
+            this.src = `/IMG/${code}.png`;
             console.log("Image not found, loading default."); 
         };
-        
+        const temp = convertTemperature(data.hourly.temperature_2m[i], tempUnit);
         row.innerHTML = `
             <td>${data.hourly.time[i].slice(11, 16)}</td>
             <td></td>
-            <td>${Math.round(data.hourly.temperature_2m[i])}°${tempUnit}</td>
+            <td>${Math.round(temp)}°${tempUnit}</td>
             <td>${data.hourly.precipitation[i]}mm</td>
         `;
         row.children[1].appendChild(img);
         tbody.appendChild(row);
     }
-
-    //table.appendChild(thead);
     table.appendChild(tbody);
     tableContainer.appendChild(table);
 }
+// Create daily forecast table (list view)
 function createDailyTable(data) {
     const tableContainer = document.getElementById('chart');
     tableContainer.innerHTML = '';
@@ -238,30 +265,32 @@ function createDailyTable(data) {
         const dateFromData = data.daily.time[i].slice(0, 10);
         const weekday = new Date(dateFromData).toLocaleDateString('en-US', { weekday: 'short' });
         const row = document.createElement('tr');
+        const maxTemp = convertTemperature(data.daily.temperature_2m_max[i], tempUnit);
+        const minTemp = convertTemperature(data.daily.temperature_2m_min[i], tempUnit);
         row.innerHTML = `
             <td>${weekday}</td>
-            <td><img src="/PNG/${data.daily.weather_code[i]}.png"></td>
-            <td>${Math.round(data.daily.temperature_2m_min[i])}...${Math.round(data.daily.temperature_2m_max[i])}°${tempUnit}</td>
+            <td><img src="/IMG/${data.daily.weather_code[i]}.png"></td>
+            <td>${Math.round(minTemp)}...${Math.round(maxTemp)}°${tempUnit}</td>
             <td>${data.daily.precipitation_sum[i]}mm</td>
         `;
         tbody.appendChild(row);
     }
-
-    //table.appendChild(thead);
-    //table.appendChild(thead);
     table.appendChild(tbody);
     tableContainer.appendChild(table);
 }
-/* async function fetchIMForecast(url) {
-    const response = await fetch(url, {
-        headers: {
-            'User-Agent': 'Weather app project, (https://github.com/jiiquu/LUT-WPC-PROJECT)'
+// Helper function to update weather and forecast based on current coordinates and settings
+function updateWeatherAndForecast() {
+    const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${myLat}&lon=${myLon}&appid=${OWMAPIKey}&units=metric`;
+    fetchCurrentWeather(OWMCurrentWeatherUrl);
+    const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_hours=24&wind_speed_unit=ms`;
+        const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
+        if (forecastMode === "24h") {
+            fetchHourlyForecast(hourlyUrl);
+        } else {
+            fetchDailyForecast(dailyUrl);
         }
-    });
-    const data = await response.json();
-    console.log(data);
-    //displayIMForecast(data);
-} */
+}
+// Handle city search form submission
 document.getElementById('search_form').addEventListener('submit', async(event) => {
     event.preventDefault();
     const city = document.getElementById('city_input').value;
@@ -269,62 +298,76 @@ document.getElementById('search_form').addEventListener('submit', async(event) =
         const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${OWMAPIKey}&units=metric`;
         const response = await fetch(OWMCurrentWeatherUrl);
         const data = await response.json();
-        displayCurrentWeather(data);
         myLat = data.coord.lat;
         myLon = data.coord.lon;
-        const hourlyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_days=1&wind_speed_unit=ms`;
-        const dailyForecastOMUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
-        if (forecastMode === "24h") {
-            fetchHourlyForecast(hourlyForecastOMUrl);
-        } else {
-            fetchDailyForecast(dailyForecastOMUrl);
-        }
-        
+        updateWeatherAndForecast();
     }
     else {
         return;
     }
-    
-
 })
-
+// Toggle view between chart and list
 document.getElementById('toggle_view').addEventListener('click', () => {
     viewToggle = (viewToggle === "chart") ? "list" : "chart";
-    const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_days=1&wind_speed_unit=ms`;
-    const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
-    if (forecastMode === "24h") {
-        fetchHourlyForecast(hourlyUrl);
-    } else {
-        fetchDailyForecast(dailyUrl);
-    }
-}
-)
-/* document.getElementById('toggle_list').addEventListener('click', () => {
-    viewToggle = "list";
-    
-        if (forecastMode === "24h") {
-            const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m&timezone=auto&forecast_days=1&wind_speed_unit=ms`;
-            fetchHourlyForecast(hourlyUrl);
-        } else {
-            const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
-            fetchDailyForecast(dailyUrl);
-        }
-
-}); */
+    updateWeatherAndForecast();
+});
+// Toggle forecast mode
 document.getElementById('toggle_forecast').addEventListener('click', () => {
     forecastMode = (forecastMode === "24h") ? "7d" : "24h";
-    const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&hourly=weather_code,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,is_day&timezone=auto&forecast_days=1&wind_speed_unit=ms`;
-    const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
-
-    if (forecastMode === "24h") {
-        fetchHourlyForecast(hourlyUrl);
-    } else {
-        fetchDailyForecast(dailyUrl);
-}
+    updateWeatherAndForecast();
 });
+// Toggle temperature units
+document.getElementById('toggle_units').addEventListener('click', () => {
+    tempUnit = (tempUnit === "C") ? "F" : (tempUnit === "F") ? "K" : "C";
+    updateWeatherAndForecast();
+});
+// Save current location to favourites in localStorage
+function saveCurrentToLocalStorage() {
+    const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
+    const lat = Number(myLat).toFixed(4);
+    const lon = Number(myLon).toFixed(4);
+    const current = {
+        city: document.getElementById('current_city').innerText,
+        lat: lat,
+        lon: lon
+    }
+    if (!favourites.some(fav => fav.lat === current.lat && fav.lon === current.lon)) {
+        favourites.push(current);
+        localStorage.setItem('favourites', JSON.stringify(favourites));
+        updateFavouritesDropdown();
+    }
+}
+// Update favourites dropdown menu
+function updateFavouritesDropdown() {
+    const dropdown = document.getElementById('favourites_dropdown');
+    dropdown.innerHTML = '<option value="">Favourites</option>';
+    const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
+    favourites.forEach(fav => {
+        const option = document.createElement('option');
+        option.value = `${fav.lat},${fav.lon}`;
+        option.text = fav.city;
+        dropdown.appendChild(option);
+    });
+}
+// Handle favourite selection
+document.getElementById('favourites_dropdown').addEventListener('change', function() {
+    const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
+    const selected = this.value;
+    //console.log(selected);
+    if (selected) {
+        const [lat, lon] = selected.split(',').map(x => Number(x).toFixed(4));
+        myLat = lat;
+        myLon = lon;
+        updateWeatherAndForecast();
+    }
+});
+// Save current location to favourites
+document.getElementById('save_favourite').addEventListener('click', saveCurrentToLocalStorage);
 
+// Clear all favourites
+document.getElementById('clear_favourites').addEventListener('click', function() {
+    localStorage.removeItem('favourites');
+    updateFavouritesDropdown();
+});
+// Initialize like a true Englishman
 init();
-
-
-//const OMCurrentWeatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${myLat}&longitude=${myLon}&current=temperature_2m,is_day,rain,weather_code,wind_speed_10m&wind_speed_unit=ms`;
-//const OWMCurrentWeatherUrl = 'https://api.openweathermap.org/data/2.5/weather?q=Helsinki&appid=58111013c30dffa44e8a1d78e22ce00c&units=metric';
