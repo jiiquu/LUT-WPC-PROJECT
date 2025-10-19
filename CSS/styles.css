@@ -13,6 +13,20 @@ html {
     align-items: center;
     width: 100%;
 }
+#city_input {
+    font-size: 30px;
+    width: 40%;
+    margin-bottom: 5px;
+    border-radius: 5px;
+}
+#favourites_dropdown {
+    
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 30px;
+    width: 40%;
+
+}
 #forecast {
     margin: 5px;
     padding: 5px;
@@ -27,7 +41,7 @@ h2 {
 }
 
 .icon {
-    margin: 0px;
+    
     padding: 5px;
     border-radius: 30%;
     background-color: rgba(255, 255, 255, 0.5);
@@ -106,11 +120,5 @@ body {
     max-width: 600px;
     
 }
-#favourites_dropdown {
-    margin-left: 20px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 20px;
 
-}
 

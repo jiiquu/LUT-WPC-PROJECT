@@ -8,10 +8,8 @@ let forecastMode = "24h";
 let viewToggle = "list";
 let tempUnit = "C";
 
-
 // Fetch and render initial weather data
 function init() {
- 
     // Get user location, update coordinates, fallback to default if error
     if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(
@@ -44,10 +42,10 @@ async function fetchCurrentWeather(url) {
         console.error("Can't get the current weather:", err);
     }
 };
-function convertTemperature(tempC, unit) {
-    if (unit === "F") return (tempC * 9/5 + 32);
-    if (unit === "K") return (tempC + 273.15);
-    return (tempC);
+function convertTemperature(celsius, unit) {
+    if (unit === "F") return (celsius * 9/5 + 32);
+    if (unit === "K") return (celsius + 273.15);
+    return (celsius);
 };
 // Show current weather data in the div #current    
 function displayCurrentWeather(data) {
@@ -66,10 +64,11 @@ function displayCurrentWeather(data) {
     document.querySelector('#current_wind_speed').innerText = `${Math.round(data.wind.speed)}m/s wind`;
     setAppStyleBasedOnWeather(data);
 };
-// Generate the cache key based on latitude, longitude, and forecast mode
+// Generate the cache key based on lat, long, and forecast mode
 function getCacheKey(lat, lon, mode) {
     return `${lat}_${lon}_${mode}`;
 };
+
 // Set app background and persona icon based on weather and time of day
 function setAppStyleBasedOnWeather(data) {
     const currentCondition = data.weather[0].main.toLowerCase();
@@ -110,18 +109,19 @@ async function fetchHourlyForecast(url) {
     }
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.ok) throw new Error('Network response not ok');
         const data = await response.json();
         forecastCache[key] = {
             data: data,
             timestamp: Date.now()
         };
-        console.log('Data stored in cache with key:', key);    
+        console.log('Data stored in cache');
         displayHourlyForecast(data);
     } catch (error) {
         console.error("Can't get the hourly forecast:", error);
     }
 };
+// Render hourly forcast data
 function displayHourlyForecast(data) {
     if (!data || data.length === 0) {
         console.error('No data');
@@ -142,7 +142,8 @@ function displayHourlyForecast(data) {
                 }
             ]
         }
-            if (viewToggle === "chart") {
+        
+        if (viewToggle === "chart") {
             createChart(chartData);
         } else {
             createHourlyTable(data);
@@ -169,17 +170,18 @@ async function fetchDailyForecast(url) {
             data: data,
             timestamp: Date.now()
         };
-        console.log('Data stored in cache with key:', key);
+        console.log('Data stored in cache');
         displayDailyForecast(data);
     } catch (error) {
         console.error("Can't get the daily forecast:", error);
     }
 };
-// Show the fetched data
+// Render daily forecast data
 function displayDailyForecast(data) {
     if (!data || data.length === 0) {
         console.error('No data');
         return;
+
     } else {
         // Format time to weekdays for labels
         const weekdayLabels = data.daily.time.map(t => {
@@ -214,6 +216,7 @@ function createChart(chartData) {
         height: 300,
         width: 350,
         colors: ['#eb5146'],
+        
     })
 }
 // Create hourly forecast table (list view)
@@ -249,6 +252,7 @@ function createHourlyTable(data) {
     table.appendChild(tbody);
     tableContainer.appendChild(table);
 }
+
 // Create daily forecast table (list view)
 function createDailyTable(data) {
     const tableContainer = document.getElementById('chart');
@@ -274,6 +278,7 @@ function createDailyTable(data) {
     table.appendChild(tbody);
     tableContainer.appendChild(table);
 }
+
 // Helper function to update weather and forecast based on current coordinates and settings
 function updateWeatherAndForecast() {
     const OWMCurrentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${myLat}&lon=${myLon}&appid=${OWMAPIKey}&units=metric`;
@@ -286,6 +291,7 @@ function updateWeatherAndForecast() {
             fetchDailyForecast(dailyUrl);
         }
 }
+
 // Search city
 document.getElementById('search_form').addEventListener('submit', async(event) => {
     event.preventDefault();
@@ -307,16 +313,19 @@ document.getElementById('search_form').addEventListener('submit', async(event) =
         return;
     }
 })
+
 // Toggle view between chart and list
 document.getElementById('toggle_view').addEventListener('click', () => {
     viewToggle = (viewToggle === "chart") ? "list" : "chart";
     updateWeatherAndForecast();
 });
+
 // Toggle forecast mode
 document.getElementById('toggle_forecast').addEventListener('click', () => {
     forecastMode = (forecastMode === "24h") ? "7d" : "24h";
     updateWeatherAndForecast();
 });
+
 // Toggle temperature units
 document.getElementById('toggle_units').addEventListener('click', () => {
     tempUnit = (tempUnit === "C") ? "F" : (tempUnit === "F") ? "K" : "C";
@@ -335,6 +344,7 @@ function updateFavouritesDropdown() {
         dropdown.appendChild(option);
     });
 }
+
 // User selects a favourite -> update weather
 document.getElementById('favourites_dropdown').addEventListener('change', function() {
     const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
@@ -347,6 +357,7 @@ document.getElementById('favourites_dropdown').addEventListener('change', functi
         updateWeatherAndForecast();
     }
 });
+
 // Save current location to favourites
 document.getElementById('save_favourite').addEventListener('click', function() {
     const favourites = JSON.parse(localStorage.getItem('favourites')) || [];
